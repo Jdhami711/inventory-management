@@ -75,6 +75,62 @@
         </div>
       </div>
     </div>
+
+    <!--
+      Submitted restocking orders. Deliberately outside the v-if/v-else chain above:
+      the chain swaps the whole view for a loading message on every filter change,
+      and these orders have their own loader and are not affected by the filters.
+    -->
+    <div class="card submitted-orders">
+      <div class="card-header">
+        <h3 class="card-title">{{ t('orders.submittedOrders') }} ({{ submittedOrders.length }})</h3>
+      </div>
+      <div v-if="submittedLoading" class="loading">{{ t('common.loading') }}</div>
+      <div v-else-if="submittedError" class="error">{{ submittedError }}</div>
+      <div v-else-if="submittedOrders.length === 0" class="empty-submitted">
+        {{ t('orders.submittedOrdersEmpty') }}
+      </div>
+      <div v-else class="table-container">
+        <table class="orders-table">
+          <thead>
+            <tr>
+              <th class="col-order-number">{{ t('orders.table.orderNumber') }}</th>
+              <th class="col-items">{{ t('orders.table.items') }}</th>
+              <th class="col-value">{{ t('orders.table.totalValue') }}</th>
+              <th class="col-date">{{ t('orders.table.orderDate') }}</th>
+              <th class="col-date">{{ t('orders.table.expectedDelivery') }}</th>
+              <th class="col-lead-time">{{ t('orders.table.leadTime') }}</th>
+              <th class="col-status">{{ t('orders.table.status') }}</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="order in submittedOrders" :key="order.id">
+              <td class="col-order-number"><strong>{{ order.order_number }}</strong></td>
+              <td class="col-items">
+                <details class="items-details">
+                  <summary class="items-summary">
+                    {{ t('orders.itemsCount', { count: order.items.length }) }}
+                  </summary>
+                  <div class="items-dropdown">
+                    <div v-for="item in order.items" :key="item.sku" class="item-entry">
+                      <span class="item-name">{{ translateProductName(item.name) }}</span>
+                      <span class="item-meta">{{ t('orders.quantity') }}: {{ item.quantity }} @ {{ formatMoney(item.unit_cost, 2) }}</span>
+                    </div>
+                  </div>
+                </details>
+              </td>
+              <td class="col-value"><strong>{{ formatMoney(order.total_value) }}</strong></td>
+              <td class="col-date">{{ formatDate(order.order_date) }}</td>
+              <td class="col-date">{{ formatDate(order.expected_delivery) }}</td>
+              <td class="col-lead-time">{{ t('orders.leadTimeDays', { count: order.lead_time_days }) }}</td>
+              <td class="col-status">
+                <span class="badge info">{{ t('status.submitted') }}</span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -83,6 +139,7 @@ import { ref, onMounted, watch, computed } from 'vue'
 import { api } from '../api'
 import { useFilters } from '../composables/useFilters'
 import { useI18n } from '../composables/useI18n'
+import { formatCurrency, formatCurrencyWithDecimals } from '../utils/currency'
 
 export default {
   name: 'Orders',
@@ -129,6 +186,30 @@ export default {
       loadOrders()
     })
 
+    // Submitted restocking orders: separate state and loader so the global
+    // filters (which only apply to the main orders list) never touch them.
+    const submittedOrders = ref([])
+    const submittedLoading = ref(true)
+    const submittedError = ref(null)
+
+    const loadSubmittedOrders = async () => {
+      try {
+        submittedError.value = null
+        submittedOrders.value = await api.getRestockOrders()
+      } catch (err) {
+        submittedError.value = t('orders.submittedOrdersError') + ': ' + err.message
+      } finally {
+        submittedLoading.value = false
+      }
+    }
+
+    // Amounts are stored in USD; formatCurrency converts for the active currency
+    const formatMoney = (amount, decimals = 0) => {
+      return decimals > 0
+        ? formatCurrencyWithDecimals(amount, currentCurrency.value, decimals)
+        : formatCurrency(amount, currentCurrency.value)
+    }
+
     const getOrdersByStatus = (status) => {
       return orders.value.filter(order => order.status === status)
     }
@@ -146,20 +227,32 @@ export default {
     const formatDate = (dateString) => {
       const { currentLocale } = useI18n()
       const locale = currentLocale.value === 'ja' ? 'ja-JP' : 'en-US'
-      return new Date(dateString).toLocaleDateString(locale, {
+      // Date-only strings ("2026-11-02", used by submitted restock orders) are parsed
+      // as UTC midnight by the Date constructor, which renders as the previous day in
+      // timezones behind UTC. Adding a time makes them parse as local time instead.
+      // Full timestamps (existing orders) are left untouched.
+      const parsable = /^\d{4}-\d{2}-\d{2}$/.test(dateString) ? `${dateString}T00:00:00` : dateString
+      return new Date(parsable).toLocaleDateString(locale, {
         year: 'numeric',
         month: 'short',
         day: 'numeric'
       })
     }
 
-    onMounted(loadOrders)
+    onMounted(() => {
+      loadOrders()
+      loadSubmittedOrders()
+    })
 
     return {
       t,
       loading,
       error,
       orders,
+      submittedOrders,
+      submittedLoading,
+      submittedError,
+      formatMoney,
       getOrdersByStatus,
       getOrderStatusClass,
       formatDate,
@@ -201,6 +294,21 @@ export default {
 
 .col-value {
   width: 120px;
+}
+
+.col-lead-time {
+  width: 150px;
+}
+
+.submitted-orders {
+  margin-top: 1.5rem;
+}
+
+.empty-submitted {
+  padding: 2rem 1.5rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 0.938rem;
 }
 
 /* Items details styling */
