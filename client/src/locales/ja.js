@@ -6,6 +6,10 @@ export default {
     orders: '注文',
     finance: '財務',
     demandForecast: '需要予測',
+    restocking: '補充発注',
+    reports: 'レポート',
+    collapse: 'サイドバーを折りたたむ',
+    expand: 'サイドバーを展開',
     companyName: '触媒コンポーネンツ',
     subtitle: '在庫管理システム'
   },
@@ -112,7 +116,12 @@ export default {
     onTimeDelivery: '定時配達',
     itemsCount: '{count}件',
     quantity: '数量',
+    submittedOrders: '送信済み注文',
+    submittedOrdersEmpty: '送信済みの補充注文はまだありません。',
+    submittedOrdersError: '送信済み注文の読み込みに失敗しました',
+    leadTimeDays: '{count}日',
     table: {
+      leadTime: '納期（リードタイム）',
       orderNumber: '注文番号',
       orderId: '注文ID',
       orderDate: '注文日',
@@ -188,6 +197,35 @@ export default {
     }
   },
 
+  // Restocking
+  restocking: {
+    title: '補充発注',
+    description: '予算を設定し、予測需要の不足が大きい品目から補充します',
+    budget: '利用可能な予算',
+    budgetHint: '需要の不足が大きい品目から順に選び、予算に収まらない品目はスキップします',
+    plannedSpend: '予定支出',
+    remaining: '残りの予算',
+    recommendedItems: '推奨品目',
+    placeOrder: '発注する',
+    placingOrder: '発注中...',
+    empty: '予算を増やすと推奨品目が表示されます。',
+    orderPlaced: '注文 {orderNumber} を送信しました。{days}日後に配達予定です。',
+    viewOrders: '注文ページで確認',
+    duplicateWarning: '送信済みの注文に含まれています: {skus}。この注文を確定すると再度発注されます。',
+    orderError: '発注に失敗しました。もう一度お試しください。',
+    loadError: '推奨品目の読み込みに失敗しました',
+    leadTimeUnit: '{count}日',
+    table: {
+      sku: 'SKU',
+      item: '品目',
+      trend: 'トレンド',
+      quantity: '数量',
+      unitCost: '単価',
+      lineCost: '小計',
+      leadTime: 'リードタイム'
+    }
+  },
+
   // Filters
   filters: {
     timePeriod: '期間',
@@ -204,6 +242,7 @@ export default {
     shipped: '出荷済み',
     processing: '処理中',
     backordered: 'バックオーダー',
+    submitted: '送信済み',
     inStock: '在庫あり',
     lowStock: '在庫僅少',
     adequate: '適量'

@@ -94,6 +94,23 @@ export const api = {
     return response.data
   },
 
+  async getRestockRecommendations(budget) {
+    const response = await axios.get(`${API_BASE_URL}/restocking/recommendations`, { params: { budget } })
+    return response.data
+  },
+
+  // Only sku and quantity are sent; the server prices the order itself.
+  async createRestockOrder(items) {
+    const payload = { items: items.map(({ sku, quantity }) => ({ sku, quantity })) }
+    const response = await axios.post(`${API_BASE_URL}/restocking/orders`, payload)
+    return response.data
+  },
+
+  async getRestockOrders() {
+    const response = await axios.get(`${API_BASE_URL}/restocking/orders`)
+    return response.data
+  },
+
   async createPurchaseOrder(purchaseOrderData) {
     const response = await axios.post(`${API_BASE_URL}/purchase-orders`, purchaseOrderData)
     return response.data
